@@ -2,9 +2,34 @@ use crate::api::Result;
 use daedalus::modded::LoaderVersion;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use theseus::prelude::*;
 use uuid::Uuid;
+
+pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    tauri::plugin::Builder::new("profile")
+        .invoke_handler(tauri::generate_handler![
+            profile_remove,
+            profile_get,
+            profile_get_optimal_jre_key,
+            profile_list,
+            profile_check_installed,
+            profile_install,
+            profile_update_all,
+            profile_update_project,
+            profile_add_project_from_version,
+            profile_add_project_from_path,
+            profile_toggle_disable_project,
+            profile_remove_project,
+            profile_run,
+            profile_run_wait,
+            profile_run_credentials,
+            profile_run_wait_credentials,
+            profile_edit,
+            profile_edit_icon,
+        ])
+        .build()
+}
 
 // Remove a profile
 // invoke('profile_add_path',path)
@@ -39,8 +64,9 @@ pub async fn profile_get_optimal_jre_key(
 #[tauri::command]
 pub async fn profile_list(
     clear_projects: Option<bool>,
-) -> Result<HashMap<PathBuf, Profile>> {
+) -> Result<HashMap<String, Profile>> {
     let res = profile::list(clear_projects).await?;
+    let res = res.into_iter().map(|(k, v)| (k.to_string_lossy().to_string(), v)).collect();
     Ok(res)
 }
 
@@ -77,8 +103,10 @@ pub async fn profile_install(path: &Path) -> Result<()> {
 #[tauri::command]
 pub async fn profile_update_all(
     path: &Path,
-) -> Result<HashMap<PathBuf, PathBuf>> {
-    Ok(profile::update_all(path).await?)
+) -> Result<HashMap<String, String>> {
+    let res = profile::update_all(path).await?;
+    let res = res.into_iter().map(|(k, v)| (k.to_string_lossy().to_string(), v.to_string_lossy().to_string())).collect();
+    Ok(res)  
 }
 
 /// Updates a specified project
@@ -87,8 +115,10 @@ pub async fn profile_update_all(
 pub async fn profile_update_project(
     path: &Path,
     project_path: &Path,
-) -> Result<PathBuf> {
-    Ok(profile::update_project(path, project_path, None).await?)
+) -> Result<String> {
+    let res = profile::update_project(path, project_path, None).await?;
+    let res = res.to_string_lossy().to_string();
+    Ok(res)
 }
 
 // Adds a project to a profile from a version ID
@@ -97,8 +127,10 @@ pub async fn profile_update_project(
 pub async fn profile_add_project_from_version(
     path: &Path,
     version_id: String,
-) -> Result<PathBuf> {
-    Ok(profile::add_project_from_version(path, version_id).await?)
+) -> Result<String> {
+    let res = profile::add_project_from_version(path, version_id).await?;
+    let res = res.to_string_lossy().to_string();
+    Ok(res)
 }
 
 // Adds a project to a profile from a path
@@ -108,9 +140,10 @@ pub async fn profile_add_project_from_path(
     path: &Path,
     project_path: &Path,
     project_type: Option<String>,
-) -> Result<PathBuf> {
+) -> Result<String> {
     let res = profile::add_project_from_path(path, project_path, project_type)
         .await?;
+    let res = res.to_string_lossy().to_string();
     Ok(res)
 }
 
@@ -120,8 +153,10 @@ pub async fn profile_add_project_from_path(
 pub async fn profile_toggle_disable_project(
     path: &Path,
     project_path: &Path,
-) -> Result<PathBuf> {
-    Ok(profile::toggle_disable_project(path, project_path).await?)
+) -> Result<String> {
+    let res = profile::toggle_disable_project(path, project_path).await?;
+    let res = res.to_string_lossy().to_string();
+    Ok(res)
 }
 
 // Removes a project from a profile

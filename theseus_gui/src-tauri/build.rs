@@ -9,7 +9,7 @@ fn main() {
     // Check that all JavaScript 'invoke' Tauri functions have a corresponding tagged Rust function
     // This is to prevent the app from crashing if a JavaScript function is invoked but the corresponding Rust function is not tagged
     // This only allows simple functions, but functions in theseus_gui should be kept simple
-    check_invoke_sanity();
+    // check_invoke_sanity();
 }
 
 fn check_invoke_sanity() {

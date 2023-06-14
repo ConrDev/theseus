@@ -1,8 +1,25 @@
 use std::path::PathBuf;
 
 use crate::api::Result;
+use tauri::plugin::TauriPlugin;
 use theseus::prelude::JavaVersion;
 use theseus::prelude::*;
+
+pub fn init<R: tauri::Runtime>() -> TauriPlugin<R> {
+    tauri::plugin::Builder::new("jre")
+        .invoke_handler(tauri::generate_handler![
+            jre_get_all_jre,
+            jre_find_jre_8_jres,
+            jre_find_jre_17_jres,
+            jre_find_jre_18plus_jres,
+            jre_autodetect_java_globals,
+            jre_validate_globals,
+            jre_get_jre,
+            jre_auto_install_java,
+            jre_get_max_memory,
+        ])
+        .build()
+}
 
 /// Get all JREs that exist on the system
 #[tauri::command]
@@ -45,14 +62,16 @@ pub async fn jre_validate_globals() -> Result<bool> {
 // Validates JRE at a given path
 // Returns None if the path is not a valid JRE
 #[tauri::command]
-pub async fn jre_get_jre(path: PathBuf) -> Result<Option<JavaVersion>> {
-    jre::check_jre(path).await.map_err(|e| e.into())
+pub async fn jre_get_jre(path: String) -> Result<Option<JavaVersion>> {
+    jre::check_jre(PathBuf::from(path)).await.map_err(|e| e.into())
 }
 
 // Auto installs java for the given java version
 #[tauri::command]
-pub async fn jre_auto_install_java(java_version: u32) -> Result<PathBuf> {
-    Ok(jre::auto_install_java(java_version).await?)
+pub async fn jre_auto_install_java(java_version: u32) -> Result<String> {
+    let res = jre::auto_install_java(java_version).await?;
+    let res = res.to_string_lossy().to_string();
+    Ok(res)
 }
 
 // Gets the maximum memory a system has available.
