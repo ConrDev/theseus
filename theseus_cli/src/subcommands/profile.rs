@@ -66,33 +66,8 @@ impl ProfileInit {
         let state = State::get().await?;
         let metadata = state.metadata.read().await;
 
-        if self.path.exists() {
-            ensure!(
-                self.path.is_dir(),
-                "Attempted to create profile in something other than a folder!"
-            );
-            ensure!(
-                !self.path.join("profile.json").exists(),
-                "Profile already exists! Perhaps you want `profile add` instead?"
-            );
-            if ReadDirStream::new(fs::read_dir(&self.path).await?)
-                .next()
-                .await
-                .is_some()
-            {
-                warn!("You are trying to create a profile in a non-empty directory. If this is an instance from another launcher, please be sure to properly fill the profile.json fields!");
-                if !confirm_async(
-                    String::from("Do you wish to continue"),
-                    false,
-                )
-                .await?
-                {
-                    eyre::bail!("Aborted!");
-                }
-            }
-        } else {
-            fs::create_dir_all(&self.path).await?;
-        }
+        self.ensure_path().await?;
+
         info!(
             "Creating profile at path {}",
             &canonicalize(&self.path)?.display()
@@ -204,7 +179,41 @@ impl ProfileInit {
         );
         Ok(())
     }
+
+    async fn ensure_path(&self) -> Result<()> {
+        if self.path.exists() {
+            ensure!(
+                self.path.is_dir(),
+                "Attempted to create profile in something other than a folder!"
+            );
+            ensure!(
+                !self.path.join("profile.json").exists(),
+                "Profile already exists! Perhaps you want `profile add` instead?"
+            );
+            if ReadDirStream::new(fs::read_dir(&self.path).await?)
+                .next()
+                .await
+                .is_some()
+            {
+                warn!("You are trying to create a profile in a non-empty directory. If this is an instance from another launcher, please be sure to properly fill the profile.json fields!");
+                if !confirm_async(
+                    String::from("Do you wish to continue"),
+                    false,
+                )
+                .await?
+                {
+                    eyre::bail!("Aborted!");
+                }
+            }
+        } else {
+            fs::create_dir_all(&self.path).await?;
+        }
+        Ok(())
+    
+    }
 }
+
+
 
 #[derive(argh::FromArgs, Debug)]
 /// list all managed profiles

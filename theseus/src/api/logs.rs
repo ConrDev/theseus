@@ -63,6 +63,8 @@ pub async fn get_logs(
         }
     }
 
+
+
     let mut logs = logs.into_iter().collect::<crate::Result<Vec<Logs>>>()?;
     logs.sort_by_key(|x| x.datetime_string.clone());
     Ok(logs)

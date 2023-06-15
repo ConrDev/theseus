@@ -27,6 +27,7 @@ pub struct JavaVersion {
 // Returns a Vec of unique JavaVersions from the PATH, Windows Registry Keys and common Java locations
 #[cfg(target_os = "windows")]
 #[tracing::instrument]
+#[inline(always)]
 pub async fn get_all_jre() -> Result<Vec<JavaVersion>, JREError> {
     let mut jre_paths = HashSet::new();
 
@@ -88,6 +89,7 @@ pub async fn get_all_jre() -> Result<Vec<JavaVersion>, JREError> {
 // Gets paths rather than search directly as RegKeys should not be passed asynchronously (do not impl Send)
 #[cfg(target_os = "windows")]
 #[tracing::instrument]
+#[inline(always)]
 pub fn get_paths_from_jre_winregkey(
     jre_key: RegKey,
 ) -> Result<HashSet<PathBuf>, JREError> {
@@ -111,10 +113,12 @@ pub fn get_paths_from_jre_winregkey(
     Ok(jre_paths)
 }
 
+
 // Entrypoint function (Mac)
 // Returns a Vec of unique JavaVersions from the PATH, and common Java locations
 #[cfg(target_os = "macos")]
 #[tracing::instrument]
+#[inline(always)]
 pub async fn get_all_jre() -> Result<Vec<JavaVersion>, JREError> {
     // Use HashSet to avoid duplicates
     let mut jre_paths = HashSet::new();
@@ -153,6 +157,7 @@ pub async fn get_all_jre() -> Result<Vec<JavaVersion>, JREError> {
 // Returns a Vec of unique JavaVersions from the PATH, and common Java locations
 #[cfg(target_os = "linux")]
 #[tracing::instrument]
+#[inline(always)]
 pub async fn get_all_jre() -> Result<Vec<JavaVersion>, JREError> {
     // Use HashSet to avoid duplicates
     let mut jre_paths = HashSet::new();
@@ -194,6 +199,7 @@ pub async fn get_all_jre() -> Result<Vec<JavaVersion>, JREError> {
 // Gets all JREs from the PATH env variable
 #[tracing::instrument]
 #[theseus_macros::debug_pin]
+#[inline(always)]
 async fn get_all_autoinstalled_jre_path() -> Result<HashSet<PathBuf>, JREError>
 {
     Box::pin(async move {
@@ -220,6 +226,7 @@ async fn get_all_autoinstalled_jre_path() -> Result<HashSet<PathBuf>, JREError>
 
 // Gets all JREs from the PATH env variable
 #[tracing::instrument]
+#[inline(always)]
 async fn get_all_jre_path() -> Result<HashSet<PathBuf>, JREError> {
     // Iterate over values in PATH variable, where accessible JREs are referenced
     let paths = env::var("PATH")?;
@@ -237,6 +244,7 @@ const JAVA_BIN: &str = "java";
 // For each example filepath in 'paths', perform check_java_at_filepath, checking each one concurrently
 // and returning a JavaVersion for every valid path that points to a java bin
 #[tracing::instrument]
+#[inline(always)]
 pub async fn check_java_at_filepaths(
     paths: HashSet<PathBuf>,
 ) -> Result<HashSet<JavaVersion>, JREError> {
@@ -256,6 +264,7 @@ pub async fn check_java_at_filepaths(
 // If no such path exists, or no such valid java at this path exists, returns None
 #[tracing::instrument]
 #[theseus_macros::debug_pin]
+#[inline(always)]
 pub async fn check_java_at_filepath(path: &Path) -> Option<JavaVersion> {
     // Attempt to canonicalize the potential java filepath
     // If it fails, this path does not exist and None is returned (no Java here)
@@ -326,6 +335,7 @@ pub async fn check_java_at_filepath(path: &Path) -> Option<JavaVersion> {
 /// Gets the minor version or an error, and assumes 1 for major version if it could not find
 /// "1.8.0_361" -> (1, 8)
 /// "20" -> (1, 20)
+#[inline(always)]
 pub fn extract_java_majorminor_version(
     version: &str,
 ) -> Result<(u32, u32), JREError> {

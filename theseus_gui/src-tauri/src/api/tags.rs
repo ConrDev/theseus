@@ -1,7 +1,7 @@
 use crate::api::Result;
 use theseus::tags::{Category, DonationPlatform, GameVersion, Loader, Tags};
 
-pub fn init <R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("tags")
         .invoke_handler(tauri::generate_handler![
             tags_get_categories,

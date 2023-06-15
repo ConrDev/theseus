@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::api::Result;
 use theseus::prelude::*;
@@ -59,8 +59,15 @@ pub async fn process_get_uuids_by_profile_path(
 // Gets the Profile paths of each *running* stored process in the state
 #[tauri::command]
 pub async fn process_get_all_running_profile_paths() -> Result<Vec<String>> {
-    Ok(process::get_all_running_profile_paths().await.unwrap().into_iter().map(|p| p.to_string_lossy().to_string()).collect::<Vec<String>>())
+    Ok(process::get_all_running_profile_paths()
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|p| p.to_string_lossy().to_string())
+        .collect::<Vec<String>>())
 }
+
+
 
 // Gets the Profiles (cloned) of each *running* stored process in the state
 #[tauri::command]

@@ -7,9 +7,10 @@ use crate::event::emit::{emit_loading, init_loading};
 use crate::util::fetch::{fetch_advanced, fetch_json};
 use crate::{
     state::JavaGlobals,
-    util::jre::{self, extract_java_majorminor_version, JavaVersion},
+    util::jre::{self, JavaVersion},
     LoadingBarType, State,
 };
+pub use crate::util::jre::extract_java_majorminor_version;
 
 pub const JAVA_8_KEY: &str = "JAVA_8";
 pub const JAVA_17_KEY: &str = "JAVA_17";
@@ -17,6 +18,7 @@ pub const JAVA_18PLUS_KEY: &str = "JAVA_18PLUS";
 
 // Autodetect JavaSettings default
 // Make a guess for what the default Java global settings should be
+#[inline(always)]
 pub async fn autodetect_java_globals() -> crate::Result<JavaGlobals> {
     let mut java_8 = find_java8_jres().await?;
     let mut java_17 = find_java17_jres().await?;
@@ -38,9 +40,10 @@ pub async fn autodetect_java_globals() -> crate::Result<JavaGlobals> {
 }
 
 // Searches for jres on the system that are 1.18 or higher
+#[inline(always)]
 pub async fn find_java18plus_jres() -> crate::Result<Vec<JavaVersion>> {
     let version = extract_java_majorminor_version("1.18")?;
-    let jres = jre::get_all_jre().await?;
+    let jres: Vec<JavaVersion> = jre::get_all_jre().await?;
     // Filter out JREs that are not 1.17 or higher
     Ok(jres
         .into_iter()
@@ -56,6 +59,7 @@ pub async fn find_java18plus_jres() -> crate::Result<Vec<JavaVersion>> {
 }
 
 // Searches for jres on the system that are 1.8 exactly
+#[inline(always)]
 pub async fn find_java8_jres() -> crate::Result<Vec<JavaVersion>> {
     let version = extract_java_majorminor_version("1.8")?;
     let jres = jre::get_all_jre().await?;
@@ -75,6 +79,7 @@ pub async fn find_java8_jres() -> crate::Result<Vec<JavaVersion>> {
 }
 
 // Searches for jres on the system that are 1.17 exactly
+#[inline(always)]
 pub async fn find_java17_jres() -> crate::Result<Vec<JavaVersion>> {
     let version = extract_java_majorminor_version("1.17")?;
     let jres = jre::get_all_jre().await?;
@@ -93,6 +98,7 @@ pub async fn find_java17_jres() -> crate::Result<Vec<JavaVersion>> {
         .collect())
 }
 
+#[inline(always)]
 #[theseus_macros::debug_pin]
 pub async fn auto_install_java(java_version: u32) -> crate::Result<PathBuf> {
     let state = State::get().await?;
@@ -176,10 +182,64 @@ pub async fn auto_install_java(java_version: u32) -> crate::Result<PathBuf> {
 }
 
 // Get all JREs that exist on the system
+#[inline(always)]
 pub async fn get_all_jre() -> crate::Result<Vec<JavaVersion>> {
     Ok(jre::get_all_jre().await?)
 }
 
+#[inline(always)]
+pub async fn get_complex_jre_dbg() -> crate::Result<Vec<JavaVersion>> {
+    let  jres = jre::get_all_jre().await?;
+    let  jres_2 = find_java8_jres().await?;
+    let  jres_3 = find_java17_jres().await?;
+    let sum = jres.len() + jres_2.len() + jres_3.len();
+    Ok(jres[sum..].to_vec())
+
+}
+
+#[inline(always)]
+pub async fn get_complex_jre_dbg_2() -> crate::Result<Vec<JavaVersion>> {
+    let  jres = jre::get_all_jre().await?;
+    let  jres_2 = find_java8_jres().await?;
+    let  jres_3 = find_java17_jres().await?;
+    let jres_4 = get_complex_jre_dbg().await?;
+
+    let sum = jres.len() + jres_2.len() + jres_3.len() + jres_4.len();
+
+    Ok(jres[sum..].to_vec())
+
+}
+
+#[inline(always)]
+pub async fn get_complex_jre_dbg_3() -> crate::Result<Vec<JavaVersion>> {
+    let  jres = jre::get_all_jre().await?;
+    let  jres_2 = find_java8_jres().await?;
+    let  jres_3 = find_java17_jres().await?;
+    let jres_4 = get_complex_jre_dbg().await?;
+    let jres_5 = get_complex_jre_dbg_2().await?;
+
+    let sum = jres.len() + jres_2.len() + jres_3.len() + jres_4.len() + jres_5.len();
+
+    Ok(jres[sum..].to_vec())
+
+}
+
+#[inline(always)]
+pub async fn get_complex_jre_dbg_4() -> crate::Result<Vec<JavaVersion>> {
+    let  jres = jre::get_all_jre().await?;
+    let  jres_2 = find_java8_jres().await?;
+    let  jres_3 = find_java17_jres().await?;
+    let jres_4 = get_complex_jre_dbg().await?;
+    let jres_5 = get_complex_jre_dbg_2().await?;
+    let jres_6 = get_complex_jre_dbg_3().await?;
+
+    let sum = jres.len() + jres_2.len() + jres_3.len() + jres_4.len() + jres_5.len() + jres_6.len();
+
+    Ok(jres[sum..].to_vec())
+}
+
+
+#[inline(always)]
 pub async fn validate_globals() -> crate::Result<bool> {
     let state = State::get().await?;
     let settings = state.settings.read().await;
@@ -187,11 +247,13 @@ pub async fn validate_globals() -> crate::Result<bool> {
 }
 
 // Validates JRE at a given at a given path
+#[inline(always)]
 pub async fn check_jre(path: PathBuf) -> crate::Result<Option<JavaVersion>> {
     Ok(jre::check_java_at_filepath(&path).await)
 }
 
 // Gets maximum memory in KiB.
+#[inline(always)]
 pub async fn get_max_memory() -> crate::Result<u64> {
     Ok(sys_info::mem_info()
         .map_err(|_| {

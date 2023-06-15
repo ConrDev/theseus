@@ -9,17 +9,17 @@ use tauri::Manager;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::EnvFilter;
 
-// mod api;
-// mod error;
+mod api;
+mod error;
 
 // Should be called in launcher initialization
-// #[tauri::command]
-// async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
-//     theseus::EventState::init(app).await?;
-//     State::get().await?;
-//     State::update();
-//     Ok(())
-// }
+#[tauri::command]
+async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
+    theseus::EventState::init(app).await?;
+    State::get().await?;
+    State::update();
+    Ok(())
+}
 
 use tracing_subscriber::prelude::*;
 
@@ -61,20 +61,18 @@ fn main() {
                 .unwrap();
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        // .plugin(api::auth::init())
-        // .plugin(api::logs::init())
-        // .plugin(api::jre::init())
-        // .plugin(api::metadata::init())
+        .plugin(api::auth::init())
+        .plugin(api::logs::init())
+        .plugin(api::jre::init())
+        .plugin(api::metadata::init())
         // .plugin(api::pack::init())
-        // .plugin(api::process::init())
-        // .plugin(api::profile::init())
+        .plugin(api::process::init())
+        .plugin(api::profile::init())
         // .plugin(api::profile_create::init())
-        // .plugin(api::settings::init())
-        // .plugin(api::tags::init())
-        // .plugin(api::utils::init())
-        .invoke_handler(tauri::generate_handler![
-            // initialize_state,
-        ])
+        .plugin(api::settings::init())
+        .plugin(api::tags::init())
+        .plugin(api::utils::init())
+        .invoke_handler(tauri::generate_handler![initialize_state,])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -11,7 +11,8 @@ pub use crate::{
 use daedalus::modded::LoaderVersion;
 use dunce::canonicalize;
 use futures::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tokio::fs;
 use tokio_stream::wrappers::ReadDirStream;
 use tracing::{info, trace};
@@ -55,6 +56,60 @@ pub async fn profile_create(
     let state = State::get().await?;
     let uuid = Uuid::new_v4();
     let path = state.directories.profiles_dir().join(uuid.to_string());
+
+    ensure_path(&path).await?;
+
+    info!(
+        "Creating profile at path {}",
+        &canonicalize(&path)?.display()
+    );
+
+    let loader = if modloader != ModLoader::Vanilla {
+        get_loader_version_from_loader(
+            game_version.clone(),
+            modloader,
+            loader_version,
+        )
+        .await?
+    } else {
+        None
+    };
+
+    // Fully canonicalize now that its created for storing purposes
+    let path = canonicalize(&path)?;
+    let mut profile =
+        Profile::new(uuid, name, game_version, path.clone()).await?;
+    let result = async {
+        set_icon(&state, &mut profile, icon, icon_url, loader, modloader)
+            .await?;
+
+        profile.metadata.linked_data = linked_data;
+
+        emit_profile(
+            uuid,
+            path.clone(),
+            &profile.metadata.name,
+            ProfilePayloadType::Created,
+        )
+        .await?;
+
+        insert_profile(&state, &mut profile, skip_install_profile).await?;
+
+        Ok(path)
+    }
+    .await;
+
+    match result {
+        Ok(profile) => Ok(profile),
+        Err(err) => {
+            let _ = crate::api::profile::remove(&profile.path).await;
+
+            Err(err)
+        }
+    }
+}
+
+async fn ensure_path(path: &Path) -> crate::Result<()> {
     if path.exists() {
         if !path.is_dir() {
             return Err(ProfileCreationError::NotFolder.into());
@@ -76,77 +131,52 @@ pub async fn profile_create(
     } else {
         fs::create_dir_all(&path).await?;
     }
+    Ok(())
+}
 
-    info!(
-        "Creating profile at path {}",
-        &canonicalize(&path)?.display()
-    );
-    let loader = if modloader != ModLoader::Vanilla {
-        get_loader_version_from_loader(
-            game_version.clone(),
-            modloader,
-            loader_version,
-        )
-        .await?
-    } else {
-        None
-    };
-
-    // Fully canonicalize now that its created for storing purposes
-    let path = canonicalize(&path)?;
-    let mut profile =
-        Profile::new(uuid, name, game_version, path.clone()).await?;
-    let result = async {
-        if let Some(ref icon) = icon {
-            let bytes = tokio::fs::read(icon).await?;
-            profile
-                .set_icon(
-                    &state.directories.caches_dir(),
-                    &state.io_semaphore,
-                    bytes::Bytes::from(bytes),
-                    &icon.to_string_lossy(),
-                )
-                .await?;
-        }
-
-        profile.metadata.icon_url = icon_url;
-        if let Some(loader_version) = loader {
-            profile.metadata.loader = modloader;
-            profile.metadata.loader_version = Some(loader_version);
-        }
-
-        profile.metadata.linked_data = linked_data;
-
-        emit_profile(
-            uuid,
-            path.clone(),
-            &profile.metadata.name,
-            ProfilePayloadType::Created,
-        )
-        .await?;
-
-        {
-            let mut profiles = state.profiles.write().await;
-            profiles.insert(profile.clone()).await?;
-        }
-
-        if !skip_install_profile.unwrap_or(false) {
-            crate::launcher::install_minecraft(&profile, None).await?;
-        }
-        State::sync().await?;
-
-        Ok(path)
+async fn set_icon(
+    state: &Arc<State>,
+    profile: &mut Profile,
+    icon: Option<PathBuf>,
+    icon_url: Option<String>,
+    loader: Option<LoaderVersion>,
+    modloader: ModLoader,
+) -> crate::Result<()> {
+    if let Some(ref icon) = icon {
+        let bytes = tokio::fs::read(icon).await?;
+        profile
+            .set_icon(
+                &state.directories.caches_dir(),
+                &state.io_semaphore,
+                bytes::Bytes::from(bytes),
+                &icon.to_string_lossy(),
+            )
+            .await?;
     }
-    .await;
 
-    match result {
-        Ok(profile) => Ok(profile),
-        Err(err) => {
-            let _ = crate::api::profile::remove(&profile.path).await;
-
-            Err(err)
-        }
+    profile.metadata.icon_url = icon_url;
+    if let Some(loader_version) = loader {
+        profile.metadata.loader = modloader;
+        profile.metadata.loader_version = Some(loader_version);
     }
+    Ok(())
+}
+
+async fn insert_profile(
+    state: &Arc<State>,
+    profile: &mut Profile,
+    skip_install_profile: Option<bool>,
+) -> crate::Result<()> {
+    {
+        let mut profiles = state.profiles.write().await;
+        profiles.insert(profile.clone()).await?;
+    }
+
+    if !skip_install_profile.unwrap_or(false) {
+        crate::launcher::install_minecraft(profile, None).await?;
+    }
+    State::sync().await?;
+    Ok(())
 }
 
 #[tracing::instrument]

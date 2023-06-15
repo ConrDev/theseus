@@ -2,7 +2,7 @@ use crate::api::Result;
 use daedalus::modded::LoaderVersion;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path};
+use std::path::Path;
 use theseus::prelude::*;
 use uuid::Uuid;
 
@@ -66,7 +66,10 @@ pub async fn profile_list(
     clear_projects: Option<bool>,
 ) -> Result<HashMap<String, Profile>> {
     let res = profile::list(clear_projects).await?;
-    let res = res.into_iter().map(|(k, v)| (k.to_string_lossy().to_string(), v)).collect();
+    let res = res
+        .into_iter()
+        .map(|(k, v)| (k.to_string_lossy().to_string(), v))
+        .collect();
     Ok(res)
 }
 
@@ -105,8 +108,16 @@ pub async fn profile_update_all(
     path: &Path,
 ) -> Result<HashMap<String, String>> {
     let res = profile::update_all(path).await?;
-    let res = res.into_iter().map(|(k, v)| (k.to_string_lossy().to_string(), v.to_string_lossy().to_string())).collect();
-    Ok(res)  
+    let res = res
+        .into_iter()
+        .map(|(k, v)| {
+            (
+                k.to_string_lossy().to_string(),
+                v.to_string_lossy().to_string(),
+            )
+        })
+        .collect();
+    Ok(res)
 }
 
 /// Updates a specified project

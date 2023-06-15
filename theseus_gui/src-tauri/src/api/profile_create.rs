@@ -29,7 +29,7 @@ pub async fn profile_create(
     game_version: String, // the game version of the profile
     modloader: ModLoader, // the modloader to use
     loader_version: Option<String>, // the modloader version to use, set to "latest", "stable", or the ID of your chosen loader
-    icon: Option<String>,          // the icon for the profile
+    icon: Option<String>,           // the icon for the profile
 ) -> Result<String> {
     let res = profile_create::profile_create(
         name,
